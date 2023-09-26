@@ -121,10 +121,23 @@ window_size_entry.grid(row=1, column=1)
 start_button.grid(row=2, columnspan=2)
 log_text.grid(row=3, columnspan=2)
 
-# Initialize global variables
-packet_types = []
-thresholds = {}
-window_size = 0
+# Define packet types to monitor
+packet_types = ['tcp', 'udp', 'arp', 'dns', 'http', 'https']
+
+# Set thresholds for each packet type
+thresholds = {
+    'tcp': 1000,
+    'udp': 1000,
+    'arp': 1000,
+    'dns': 1000,
+    'http': 1000,
+    'https': 1000
+}
+
+# Set window size in seconds
+window_size = 50
+
+# Initialize timestamps and attacking IP addresses
 timestamps = []
 attacking_ip_addresses = set()
 
