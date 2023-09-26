@@ -9,7 +9,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 from threading import Thread
-
 # Create a Tkinter window
 window = tk.Tk()
 window.title("Security Monitoring System")
