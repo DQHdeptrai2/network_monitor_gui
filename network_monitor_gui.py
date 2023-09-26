@@ -1,8 +1,5 @@
 import queue
 import numpy as np
-import os
-import sqlite3
-import re
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 from threading import Thread
@@ -87,6 +84,7 @@ def train_new_model():
     # Tạo một mô hình học máy
     model = RandomForestClassifier()
     # Train the model with x_train and y_train
+    model.fit(x_train, y_train)
 
 # Hàm để tính toán các đặc trưng nâng cao
 def calculate_advanced_features(packet):
@@ -114,7 +112,6 @@ def calculate_advanced_features(packet):
 def detect_ddos(features):
     # Sử dụng mô hình học máy để dự đoán
     prediction = model.predict(np.array([features]))
-
     # Nếu dự đoán là tấn công DDoS, hãy trả về True
     if prediction > 0.5:
         return True
@@ -122,6 +119,19 @@ def detect_ddos(features):
 
 # Hàm để xử lý gói
 def packet_callback(packet):
+    """
+    Callback function for handling incoming packets.
+
+    This function calculates various features for the packet, including statistical and temporal features,
+    as well as advanced features. It then uses these features to predict whether the packet is part of a DDoS attack.
+    If the packet is part of a DDoS attack, a log message is added to the packet queue.
+
+    Args:
+        packet: The packet to process.
+
+    Returns:
+        None
+    """
     global packet_queue
 
     # Kiểm tra xem loại gói có nằm trong danh sách các loại được giám sát hay không
@@ -132,8 +142,7 @@ def packet_callback(packet):
     features = []
 
     # Tính toán các đặc trưng thống kê và thời gian
-    for feature in calculate_statistics_and_temporal_features(packet):
-        features.append(feature)
+    features.extend(calculate_statistics_and_temporal_features(packet))
 
     # Tính toán các đặc trưng nâng cao
     advanced_features = calculate_advanced_features(packet)
@@ -175,3 +184,4 @@ def start_monitoring_thread():
 
 # Khởi chạy vòng lặp chính của Tkinter
 window.mainloop()
+
