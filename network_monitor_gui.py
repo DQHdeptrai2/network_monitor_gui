@@ -89,8 +89,8 @@ def train_new_model():
     model.fit(x_train, y_train)
 
     # Lưu mô hình
-    with open("model.pkl", "wb")
-        pickle.dump(model, f)
+    with open("model.pkl", "wb") as file:
+        pickle.dump(model, file)
 # Thêm tùy chọn "Đào tạo mô hình mới" vào menu "Tệp"
 file_menu.add_command(label="Đào tạo mô hình mới", command=train_new_model)
 
