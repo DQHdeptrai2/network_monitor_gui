@@ -17,6 +17,7 @@ from scapy.layers.http import HTTPRequest
 # Tạo một Tkinter window
 window = tk.Tk()
 window.title("Hệ thống giám sát an ninh")
+window.geometry("800x600")
 
 # Tạo một Text widget để hiển thị nhật ký
 log_text_widget = tk.Text(window, height=10, width=50)
@@ -28,6 +29,7 @@ def update_log_text(message):
     log_text_widget.config(state=tk.NORMAL)
     log_text_widget.insert(tk.END, message + '\n')
     log_text_widget.config(state=tk.DISABLED)
+    log_text_widget.see(tk.END)
 
 # Define a list to store detected packet types
 detected_packet_types = []
