@@ -9,7 +9,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
 # Tạo cửa sổ giao diện người dùng
+window = tk.Tk()
 window_size_entry = tk.Entry(window, width=50, defaultvalue='50')
+window.mainloop()
 window.title("Network Monitor")
 
 # Hàm để chặn IP sử dụng iptables
