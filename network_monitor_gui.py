@@ -34,19 +34,26 @@ def update_log_text(message):
 # Define a list to store detected packet types
 detected_packet_types = []
 
-# Function to start monitoring based on detected packet types
+# Hàm để bắt đầu giám sát dựa trên các loại gói được phát hiện
 def start_monitoring_auto():
     global real_time_monitoring_thread, packet_queue, detected_packet_types
-    
+
     packet_queue = queue.Queue()
-    
-    # Function to handle packet sniffing and detection
-    def packet_sniffer(packet):
-        if packet.type not in detected_packet_types:
-            return
-# Thêm một biến để theo dõi trạng thái tự động phát hiện
-auto_detection_enabled = tk.BooleanVar()
-auto_detection_enabled.set(False)
+
+    # Define the main_thread function before starting it
+    def main_thread():
+        while True:
+            # Get a packet from the queue
+            message = packet_queue.get()
+            if message is None:
+                break
+
+            # Send the data to the IDS or NMS
+            send_data_to_ids_or_nms(message)
+
+    # Start the main thread
+    main_thread = Thread(target=main_thread)
+    main_thread.start()
 
 # Hàm để bật/tắt tự động phát hiện
 def toggle_auto_detection():
@@ -59,108 +66,45 @@ def toggle_auto_detection():
         # Dừng giám sát thời gian thực
         toggle_real_time_monitoring(False)
 
-# Thêm một checkbutton để bật/tắt tự động phát hiện
-auto_detection_checkbox = tk.Checkbutton(window, text="Tự động phát hiện", variable=auto_detection_enabled, command=toggle_auto_detection)
-auto_detection_checkbox.pack()
+# Hàm để tải mô hình học máy
+def load_model():
+    global model
 
-# Sửa đổi hàm `toggle_real_time_monitoring()`
-def toggle_real_time_monitoring(enable_auto_detection=True):
-    global real_time_monitoring_thread, packet_queue
+    # Mở tệp mô hình
+    with open('model.pkl', 'rb') as f:
+        model = pickle.load(f)
 
-    if real_time_monitoring_enabled.get():
-        # Dừng giám sát thời gian thực
-        if enable_auto_detection:
-            auto_detection_enabled.set(False)
-
-        real_time_monitoring_thread.join()
-
-        # Thông báo cho người dùng rằng giám sát thời gian thực đã được tắt
-        tk.messagebox.showinfo("Thông báo", "Giám sát thời gian thực đã được tắt")
-    else:
-        # Khởi động giám sát thời gian thực
-        if enable_auto_detection:
-            auto_detection_enabled.set(True)
-
-        update_log_text('Bắt đầu giám sát lưu lượng...')
-        real_time_monitoring_thread = Thread(target=start_monitoring)
-        real_time_monitoring_thread.start()
-
-        # Thông báo cho người dùng rằng giám sát thời gian thực đã được bật
-        tk.messagebox.showinfo("Thông báo", "Giám sát thời gian thực đã được bật")
-
-# Sửa đổi hàm `packet_callback()`
-def packet_callback(packet):
-    """
-    Callback function for handling incoming packets.
-
-    This function calculates various features for the packet, including statistical and temporal features,
-    as well as advanced features. It then uses these features to predict whether the packet is part of a DDoS attack.
-    If the packet is part of a DDoS attack, a log message is added to the packet queue.
-
-    Args:
-        packet: The packet to process.
-
-    Returns:
-        None
-    """
-    global packet_queue
-
-    # Nếu tự động phát hiện được bật, hãy kiểm tra xem gói có cần được xử lý hay không
-    if auto_detection_enabled.get():
-        # Kiểm tra xem loại gói có nằm trong danh sách các loại được giám sát hay không
-        if packet.type not in packet_types:
-            return
-
-    # Tính toán các đặc trưng cho gói
-    features
-def packet_callback(packet):
-    """
-    Callback function for handling incoming packets.
-
-    This function calculates various features for the packet, including statistical and temporal features,
-    as well as advanced features. It then uses these features to predict whether the packet is part of a DDoS attack.
-    If the packet is part of a DDoS attack, a log message is added to the packet queue.
-
-    Args:
-        packet: The packet to process.
-
-    Returns:
-        None
-    """
-    global packet_queue
-
-    # Nếu tự động phát hiện được bật, hãy kiểm tra xem gói có cần được xử lý hay không
-    if auto_detection_enabled.get():
-        # Kiểm tra xem loại gói có nằm trong danh sách các loại được giám sát hay không
-        if packet.type not in packet_types:
-            return
-
-    # Tính toán các đặc trưng cho gói
-    features = []
-
+# Hàm để tính toán các đặc trưng cho gói
+def calculate_features(packet):
     # Tính toán các đặc trưng thống kê và thời gian
-    features.extend(calculate_statistics_and_temporal_features(packet))
+    statistical_and_temporal_features = calculate_statistics_and_temporal_features(packet)
 
     # Tính toán các đặc trưng nâng cao
     advanced_features = calculate_advanced_features(packet)
-    features.extend(advanced_features)
 
-    # Dự đoán xem gói có phải là tấn công DDoS hay không
-    is_attack = detect_ddos(features)
+    # Trả về danh sách các đặc trưng
+    return statistical_and_temporal_features + advanced_features
 
-    # Nếu là tấn công DDoS, hãy thêm tin nhắn nhật ký vào hàng đợi
-    if is_attack:
-        # Thêm tin nhắn nhật ký vào hàng đợi
-        packet_queue.put('Cuộc tấn công DDoS có thể từ {}: {} ({})'.format(packet.src, packet.summary(), packet.type))
+# Hàm để dự đoán xem gói có phải là tấn công DDoS hay không
+def detect_ddos(features):
+    # Sử dụng mô hình học máy để dự đoán
+    return model.predict(features.reshape(1, -1))[0]
 
-    # Nếu tự động phát hiện bị tắt, hãy gửi gói đến hệ thống IDS hoặc NMS
+# Hàm để gửi dữ liệu đến hệ thống IDS hoặc NMS
+def send_data_to_ids_or_nms(message):
+    # Gửi dữ liệu đến hệ thống IDS hoặc NMS
+    response = requests.post('https://example.com/api/v1/ddos/detect', json={'message': message})
+
+    # Xử lý phản hồi từ hệ thống IDS hoặc NMS
+    if response.status_code == 200:
+        # Nếu phản hồi thành công, hãy cập nhật nhật ký
+        update_log_text('Tấn công DDoS được phát hiện: ' + response.json()['message'])
     else:
-        # Gửi gói đến hệ thống IDS hoặc NMS
-        send_data_to_ids_or_nms(packet)
-
-# Hàm để khởi động giám sát thời gian thực
+        # Nếu phản hồi không thành công, hãy cập nhật nhật ký
+        update_log_text('Lỗi: ' + response.json()['message'])
+# Hàm để bắt đầu giám sát thời gian thực
 def start_monitoring():
-    global real_time_monitoring_thread, packet_queue
+    global real_time_monitoring_thread, packet_queue, detected_packet_types
 
     packet_queue = queue.Queue()
 
@@ -182,12 +126,12 @@ def start_monitoring():
 # Hàm để thực hiện giám sát thời gian thực
 def start_monitoring_thread():
     while True:
-        message = packet_queue.get()
-        if message is None:
-            break
+        # Sniff packets
+        packet = sniff(filter='ip', prn=packet_callback)
 
-        # Update the log text
-        update_log_text(message)
+        # Add packet to the queue
+        if packet:
+            packet_queue.put(packet)
 
 # Hàm để gửi dữ liệu đến hệ thống IDS hoặc NMS
 def send_data_to_ids_or_nms(message):
@@ -204,3 +148,14 @@ def send_data_to_ids_or_nms(message):
 
 # Khởi chạy vòng lặp chính của Tkinter
 window.mainloop()
+
+# Chức năng chính
+if __name__ == '__main__':
+    # Load mô hình học máy
+    load_model()
+
+    # Tạo danh sách các loại gói được giám sát
+    detected_packet_types = [IP, TCP, UDP]
+
+    # Khởi động giám sát thời gian thực
+    start_monitoring()
