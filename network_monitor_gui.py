@@ -116,10 +116,10 @@ def packet_callback(packet):
 
     # Calculate statistical and temporal features
     features = compute_features(packet)
-
+    
     # Calculate advanced features
     advanced_features = calculate_advanced_features(packet)
-
+    
     # Merge the feature vectors
     features += advanced_features
 
@@ -133,7 +133,7 @@ def packet_callback(packet):
         update_log_text(log_message)
         # conn.execute('INSERT INTO logs (message) VALUES (?)', (log_message,))
         # conn.commit()
-
+    
     # Make predictions using the machine learning model
     prediction = model.predict(np.array([features]))
 
