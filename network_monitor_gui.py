@@ -73,8 +73,14 @@ packet_types_entry = tk.Entry(window, width=50)
 packet_types_entry.pack()
 
 # Create a button to train a new machine learning model
-def train_new_model():
-    # Your code to train a new machine learning model goes here
+def train_new_model(x_train, y_train):
+    # Tạo mô hình học máy
+    model = RandomForestClassifier(n_estimators=100)
+    # Đào tạo mô hình
+    model.fit(x_train, y_train)
+    # Lưu mô hình
+    with open("model.h5", "wb") as f:
+        model.save(f)
     pass
 
 train_model_button = tk.Button(window, text="Train New Machine Learning Model", command=train_new_model)
@@ -90,16 +96,26 @@ sensitivity_slider.pack()
 # ... (Thresholds, window size, timestamps, attacking_ip_addresses, database creation, and model initialization)
 
 # Define a function to calculate advanced features
+import numpy as np
+
 def calculate_advanced_features(packet):
-    # Calculate advanced features such as entropy, port distribution, etc.
-    # Example: entropy_feature = calculate_entropy(packet.payload)
-    # Return a list of advanced features
-    return []
+    features = []
+
+    # Tính entropy của tải trọng gói
+    entropy_feature = np.entropy(packet.payload)
+    features.append(entropy_feature)
+
+    # Tính phân phối cổng
+    port_distribution = np.histogram(packet.dport)
+    features.append(port_distribution)
+
+    return features
 
 # Define a function to detect DDoS attacks
 def detect_ddos(packet):
-    # Implement DDoS detection logic here
-    # Example: Check for a sudden increase in traffic from multiple sources
+    # Kiểm tra xem có sự gia tăng đột ngột lưu lượng truy cập từ nhiều nguồn hay không
+    if np.sum(packet.src) > 100:
+        return True
     return False
 
 # Modify the packet callback function to use advanced features and DDoS detection
