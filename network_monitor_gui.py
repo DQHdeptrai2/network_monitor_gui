@@ -1,4 +1,4 @@
-import queue
+import queue  # Import the Queue class from the queue module
 import numpy as np
 import os
 import sqlite3
@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 import pickle
 from threading import Thread
 import tkinter as tk
+from tkinter import filedialog  # Import filedialog for saving log to file
 
 # Tạo một Tkinter window
 window = tk.Tk()
@@ -29,7 +30,7 @@ real_time_monitoring_enabled.set(False)
 
 # Hàm để bật/tắt giám sát thời gian thực
 def toggle_real_time_monitoring():
-    global real_time_monitoring_thread, queue
+    global real_time_monitoring_thread, packet_queue  # Rename 'queue' to 'packet_queue'
 
     if real_time_monitoring_enabled.get():
         update_log_text('Bắt đầu giám sát lưu lượng...')
@@ -121,7 +122,7 @@ def detect_ddos(features):
 
 # Hàm để xử lý gói
 def packet_callback(packet):
-    global queue
+    global packet_queue
 
     # Kiểm tra xem loại gói có nằm trong danh sách các loại được giám sát hay không
     if packet.type not in packet_types:
@@ -143,13 +144,13 @@ def packet_callback(packet):
 
     # Nếu là tấn công DDoS, hãy thêm tin nhắn nhật ký vào hàng đợi
     if is_attack:
-        queue.put('Cuộc tấn công DDoS có thể từ {}: {} ({})'.format(packet.src, packet.summary(), packet.type))
+        packet_queue.put('Cuộc tấn công DDoS có thể từ {}: {} ({})'.format(packet.src, packet.summary(), packet.type))
 
 # Hàm để khởi động giám sát thời gian thực
 def start_monitoring():
-    global real_time_monitoring_thread, queue
+    global real_time_monitoring_thread, packet_queue  # Rename 'queue' to 'packet_queue'
 
-    queue = Queue()
+    packet_queue = queue.Queue()
 
     real_time_monitoring_thread = Thread(target=start_monitoring_thread)
     real_time_monitoring_thread.start()
@@ -160,7 +161,7 @@ def start_monitoring():
 # Hàm để thực hiện giám sát thời gian thực
 def start_monitoring_thread():
     while True:
-        message = queue.get()
+        message = packet_queue.get()
         if message is None:
             break
 
@@ -174,5 +175,3 @@ def main_thread():
 
 # Khởi chạy vòng lặp chính của Tkinter
 window.mainloop()
-
-  
