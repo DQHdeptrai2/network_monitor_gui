@@ -1,4 +1,4 @@
-import queue  # Import the Queue class from the queue module
+import queue
 import numpy as np
 import os
 import sqlite3
@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 import pickle
 from threading import Thread
 import tkinter as tk
-from tkinter import filedialog  # Import filedialog for saving log to file
+from tkinter import filedialog
 
 # Tạo một Tkinter window
 window = tk.Tk()
@@ -86,7 +86,7 @@ def train_new_model():
 
     # Tạo một mô hình học máy
     model = RandomForestClassifier()
-...
+    # Train the model with x_train and y_train
 
 # Hàm để tính toán các đặc trưng nâng cao
 def calculate_advanced_features(packet):
@@ -152,10 +152,15 @@ def start_monitoring():
 
     packet_queue = queue.Queue()
 
+    # Define the main_thread function before starting it
+    def main_thread():
+        while True:
+            pass
+
     real_time_monitoring_thread = Thread(target=start_monitoring_thread)
     real_time_monitoring_thread.start()
 
-    main_thread = Thread(target=main_thread)
+    main_thread = Thread(target=main_thread)  # Rename the variable
     main_thread.start()
 
 # Hàm để thực hiện giám sát thời gian thực
@@ -167,11 +172,6 @@ def start_monitoring_thread():
 
         # Cập nhật nhật ký
         update_log_text(message)
-
-# Hàm để thực hiện luồng chính
-def main_thread():
-    while True:
-        pass
 
 # Khởi chạy vòng lặp chính của Tkinter
 window.mainloop()
