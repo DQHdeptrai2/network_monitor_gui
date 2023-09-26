@@ -13,10 +13,6 @@ from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether, ARP
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.http import HTTPRequest
-from scapy.layers.ssl_tls import TLSClientHello, TLSServerHello, TLSAlert, TLSRecord, TLSChangeCipherSpec, TLSFinished
-from scapy.layers.smb import SMB, SMBCommand, SMB2Command, SMB2Negotiate_Response, SMB2SessionSetup, SMB2TreeConnect, SMB2Create, SMB2Read, SMB2Write, SMB2Close, SMB2Logoff
-from scapy.layers.smb3 import SMB2Packet, SMB2_DIALECT_002, SMB2_DIALECT_21, SMB2_DIALECT_30, SMB2_DIALECT_302, SMB2_DIALECT_311, SMB2_DIALECT_3XX
-
 # Thêm một biến để theo dõi trạng thái tự động phát hiện
 auto_detection_enabled = tk.BooleanVar()
 auto_detection_enabled.set(False)
