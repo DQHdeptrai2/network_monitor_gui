@@ -13,6 +13,35 @@ from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.l2 import Ether, ARP
 from scapy.layers.dns import DNS, DNSQR, DNSRR
 from scapy.layers.http import HTTPRequest
+
+# Tạo một Tkinter window
+window = tk.Tk()
+window.title("Hệ thống giám sát an ninh")
+
+# Tạo một Text widget để hiển thị nhật ký
+log_text_widget = tk.Text(window, height=10, width=50)
+log_text_widget.config(state=tk.DISABLED)
+log_text_widget.pack()
+
+# Hàm để cập nhật văn bản nhật ký
+def update_log_text(message):
+    log_text_widget.config(state=tk.NORMAL)
+    log_text_widget.insert(tk.END, message + '\n')
+    log_text_widget.config(state=tk.DISABLED)
+
+# Define a list to store detected packet types
+detected_packet_types = []
+
+# Function to start monitoring based on detected packet types
+def start_monitoring_auto():
+    global real_time_monitoring_thread, packet_queue, detected_packet_types
+    
+    packet_queue = queue.Queue()
+    
+    # Function to handle packet sniffing and detection
+    def packet_sniffer(packet):
+        if packet.type not in detected_packet_types:
+            return
 # Thêm một biến để theo dõi trạng thái tự động phát hiện
 auto_detection_enabled = tk.BooleanVar()
 auto_detection_enabled.set(False)
