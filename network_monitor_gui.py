@@ -1,186 +1,178 @@
-import queue
+import tkinter as tk
+from tkinter import ttk, filedialog
+from scapy.all import *
 import numpy as np
 import os
 import sqlite3
 import re
-from sklearn.ensemble import RandomForestClassifier
-import pickle
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
 from threading import Thread
-import tkinter as tk
-from tkinter import filedialog
-from scapy.all import *
 
-# Tạo một Tkinter window
+# Create a Tkinter window
 window = tk.Tk()
-window.title("Hệ thống giám sát an ninh")
+window.title("Security Monitoring System")
 
-# Tạo một Text widget để hiển thị nhật ký
+# Create a variable to track real-time monitoring state
+real_time_monitoring_enabled = tk.BooleanVar()
+real_time_monitoring_enabled.set(False)
+
+# Function to toggle real-time monitoring
+def toggle_real_time_monitoring():
+    global real_time_monitoring_thread
+    if real_time_monitoring_enabled.get():
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Starting traffic monitoring...\n')
+        log_text_widget.config(state=tk.DISABLED)
+        real_time_monitoring_thread = Thread(target=start_monitoring)
+        real_time_monitoring_thread.start()
+    else:
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Stopping traffic monitoring...\n')
+        log_text_widget.config(state=tk.DISABLED)
+
+# Checkbutton to toggle real-time monitoring
+real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
+real_time_monitoring_checkbox.pack()
+
+# Create a button to clear the log
+clear_log_button = tk.Button(window, text="Clear Log")
+clear_log_button.pack()
+
+# Create a menu bar
+menubar = tk.Menu(window)
+window.config(menu=menubar)
+
+# Create a "File" menu
+file_menu = tk.Menu(menubar, tearoff=0)
+menubar.add_cascade(label="File", menu=file_menu)
+
+# Function to export log
+def export_log():
+    filename = filedialog.asksaveasfilename(title="Export Log", defaultextension=".txt")
+    if filename:
+        with open(filename, "w") as f:
+            for log in log_list:
+                f.write(log + "\n")
+
+# Add the "Export Log" option to the "File" menu
+file_menu.add_command(label="Export Log", command=export_log)
+
+# Create a Text widget to display the log
 log_text_widget = tk.Text(window, height=10, width=50)
 log_text_widget.config(state=tk.DISABLED)
 log_text_widget.pack()
 
-# Hàm để cập nhật văn bản nhật ký
-def update_log_text(message):
-    log_text_widget.config(state=tk.NORMAL)
-    log_text_widget.insert(tk.END, message + '\n')
-    log_text_widget.config(state=tk.DISABLED)
-
-# Tạo một biến để theo dõi trạng thái giám sát thời gian thực
-real_time_monitoring_enabled = tk.BooleanVar()
-real_time_monitoring_enabled.set(False)
-
-# Hàm để bật/tắt giám sát thời gian thực
-def toggle_real_time_monitoring():
-    global real_time_monitoring_thread, queue
-
-    if real_time_monitoring_enabled.get():
-        update_log_text('Bắt đầu giám sát lưu lượng...')
-        real_time_monitoring_thread = Thread(target=start_monitoring)
-        real_time_monitoring_thread.start()
-    else:
-        update_log_text('Dừng giám sát lưu lượng...')
-
-# Checkbutton để bật/tắt giám sát thời gian thực
-real_time_monitoring_checkbox = tk.Checkbutton(window, text="Bật giám sát thời gian thực", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
-real_time_monitoring_checkbox.pack()
-
-# Tạo một nút để xóa nhật ký
-clear_log_button = tk.Button(window, text="Xóa nhật ký", command=lambda: update_log_text('Nhật ký đã được xóa.'))
-clear_log_button.pack()
-
-# Tạo một menu bar
-menubar = tk.Menu(window)
-window.config(menu=menubar)
-
-# Tạo một "File" menu
-file_menu = tk.Menu(menubar, tearoff=0)
-menubar.add_cascade(label="Tệp", menu=file_menu)
-
-# Hàm để xuất nhật ký
-def export_log():
-    filename = filedialog.asksaveasfilename(title="Xuất nhật ký", defaultextension=".txt")
-    if filename:
-        with open(filename, "w") as f:
-            log_contents = log_text_widget.get("1.0", tk.END)
-            f.write(log_contents)
-
-# Thêm tùy chọn "Xuất nhật ký" vào menu "Tệp"
-file_menu.add_command(label="Xuất nhật ký", command=export_log)
-
-# Tạo một Entry widget để nhập các loại gói cần giám sát
-packet_types_label = tk.Label(window, text="Nhập các loại gói cần giám sát")
+# Create an Entry widget for entering packet types to monitor
+packet_types_label = tk.Label(window, text="Enter packet types to monitor")
 packet_types_label.pack()
 
 packet_types_entry = tk.Entry(window, width=50)
 packet_types_entry.pack()
 
-# Tạo một nút để đào tạo mô hình học máy mới
-def train_new_model():
-    global packet_types
+# Create a button to train a new machine learning model
+train_model_button = tk.Button(window, text="Train New Machine Learning Model")
+train_model_button.pack()
 
-    packet_types_input = packet_types_entry.get()
-    # Chuyển đổi đầu vào chuỗi thành danh sách các loại gói
-    packet_types = packet_types_input.split(",")
+# Create a Scale widget to adjust the sensitivity of the intrusion detection algorithm
+sensitivity_label = tk.Label(window, text="Adjust Intrusion Detection Sensitivity")
+sensitivity_label.pack()
 
-    # Tạo dữ liệu đào tạo
-    x_train, y_train = generate_training_data(packet_types)
+sensitivity_slider = tk.Scale(window, from_=0, to=100, orient="horizontal")
+sensitivity_slider.pack()
 
-    # Tạo một mô hình học máy
-    model = RandomForestClassifier()
+# ... (Thresholds, window size, timestamps, attacking_ip_addresses, database creation, and model initialization)
 
-    # Đào tạo mô hình
-    model.fit(x_train, y_train)
+# Define a function to calculate advanced features
+def compute_advanced_features(packet):
+    # Calculate advanced features such as entropy, port distribution, etc.
+    # Example: entropy_feature = calculate_entropy(packet.payload)
+    # Return a list of advanced features
+    return []
 
-    # Lưu mô hình
-    with open("model.pkl", "wb") as file:
-        pickle.dump(model, file)
-# Thêm tùy chọn "Đào tạo mô hình mới" vào menu "Tệp"
-file_menu.add_command(label="Đào tạo mô hình mới", command=train_new_model)
-
-# Hàm để tính toán các đặc trưng nâng cao
-def calculate_advanced_features(packet):
-    features = []
-
-    # Tính toán entropi của nội dung gói
-    entropy_feature = np.entropy(packet.payload)
-    features.append(entropy_feature)
-
-    # Tính phân phối cổng
-    port_distribution = np.histogram(packet.dport, bins=10, range=(0, 65535))[0]
-    features.extend(port_distribution)
-
-    # Tính độ dài chuỗi IP nguồn
-    source_ip_length = len(packet.src)
-    features.append(source_ip_length)
-
-    # Tính độ dài chuỗi IP đích
-    destination_ip_length = len(packet.dst)
-    features.append(destination_ip_length)
-
-    return features
-
-# Hàm để phát hiện tấn công DDoS
-def detect_ddos(features):
-    # Sử dụng mô hình học máy để dự đoán
-    prediction = model.predict(np.array([features]))
-
-    # Nếu dự đoán là tấn công DDoS, hãy trả về True
-    if prediction > 0.5:
-        return True
+# Define a function to detect DDoS attacks
+def detect_ddos(packet):
+    # Implement DDoS detection logic here
+    # Example: Check for a sudden increase in traffic from multiple sources
     return False
 
-# Hàm để xử lý gói
+# Modify the packet callback function to use advanced features and DDoS detection
 def packet_callback(packet):
-    global queue
+    global timestamps, attacking_ip_addresses
 
-    # Kiểm tra xem loại gói có nằm trong danh sách các loại được giám sát hay không
+    # Check if the packet type is in the list of monitored types
     if packet.type not in packet_types:
         return
 
-    # Tính toán các đặc trưng cho gói
-    features = []
+    # Update timestamps
+    timestamps.append(packet.time)
 
-    # Tính toán các đặc trưng thống kê và thời gian
-    for feature in calculate_statistics_and_temporal_features(packet):
-        features.append(feature)
+    # Calculate statistical and temporal features
+    features = compute_features(packet)
+    
+    # Calculate advanced features
+    advanced_features = compute_advanced_features(packet)
+    
+    # Merge the feature vectors
+    features += advanced_features
 
-    # Tính toán các đặc trưng nâng cao
-    advanced_features = calculate_advanced_features(packet)
-    features.extend(advanced_features)
+    # Get the packet type
+    packet_type = get_packet_type(packet)
 
-    # Dự đoán xem gói có phải là tấn công DDoS hay không
-    is_attack = detect_ddos(features)
+    # Detect DDoS attacks
+    if detect_ddos(packet):
+        # Log the DDoS attack
+        log_message = 'Possible DDoS attack from {}: {} ({})'.format(packet.src, packet.summary(), packet_type)
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, log_message + '\n')
+        log_text_widget.config(state=tk.DISABLED)
+        conn.execute('INSERT INTO logs (message) VALUES (?)', (log_message,))
+        conn.commit()
+    
+    # Make predictions using the machine learning model
+    prediction = model.predict(np.array([features]))
 
-    # Nếu là tấn công DDoS, hãy thêm tin nhắn nhật ký vào hàng đợi
-    if is_attack:
-        queue.put('Cuộc tấn công DDoS có thể từ {}: {} ({})'.format(packet.src, packet.summary(), packet.type))
+    # If the prediction indicates an anomaly, log it
+    if prediction > 0.5:  # Adjust the threshold as needed
+        # Add a field to the log message to store the packet type
+        log_message = 'Anomalous packet from {}: {} ({})'.format(packet.src, packet.summary(), packet_type)
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, log_message + '\n')
+        log_text_widget.config(state=tk.DISABLED)
+        conn.execute('INSERT INTO logs (message) VALUES (?)', (log_message,))
+        conn.commit()
 
-# Hàm để khởi động giám sát thời gian thực
+# Modify the start_monitoring function to use advanced_packet_callback
 def start_monitoring():
-    global real_time_monitoring_thread, queue
+    global real_time_monitoring_enabled
 
-    queue = queue.Queue()
+    # Check if real-time monitoring is enabled
+    if not real_time_monitoring_enabled.get():
+        return
 
-    real_time_monitoring_thread = Thread(target=start_monitoring_thread)
-    real_time_monitoring_thread.start()
+    try:
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Starting traffic monitoring...\n')
+        log_text_widget.config(state=tk.DISABLED)
 
-    main_thread = Thread(target=main_thread)
-    main_thread.start()
+        # Sniff packets and use the advanced_packet_callback function
+        sniff(filter='tcp, udp, arp, dns, icmp', prn=packet_callback)
+    except KeyboardInterrupt:
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Program terminated...\n')
+        log_text_widget.config(state=tk.DISABLED)
 
-# Hàm để thực hiện giám sát thời gian thực
-def start_monitoring_thread():
-    while True:
-        message = queue.get()
-        if message is None:
-            break
+# Bind the clear log button to a function to clear the log
+def clear_log():
+    log_text_widget.config(state=tk.NORMAL)
+    log_text_widget.delete('1.0', tk.END)
+    log_text_widget.config(state=tk.DISABLED)
 
-        # Cập nhật nhật ký
-        update_log_text(message)
+clear_log_button.config(command=clear_log)
 
-# Hàm để thực hiện luồng chính
-def main_thread():
-    while True:
-        pass
+# Bind the train model button to a function to train a new machine learning model
+train_model_button.config(command=train_new_model)
 
-# Khởi chạy vòng lặp chính của Tkinter
+# Start the Tkinter main loop
 window.mainloop()
