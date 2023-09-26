@@ -8,11 +8,22 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
-# Tạo cửa sổ giao diện người dùng
+# Create a Tkinter window
 window = tk.Tk()
-window_size_entry = tk.Entry(window, width=50, defaultvalue='50')
+window.title("Security Monitoring System")
+
+# Create a StringVar to store the default value
+default_value = tk.StringVar()
+default_value.set("50")
+
+# Create an Entry widget and link it to the StringVar
+window_size_entry = tk.Entry(window, width=50, textvariable=default_value)
+
+# Pack the Entry widget to display it
+window_size_entry.pack()
+
+# Start the Tkinter main loop
 window.mainloop()
-window.title("Network Monitor")
 
 # Hàm để chặn IP sử dụng iptables
 def ban_ip(ip, duration=600):
