@@ -155,7 +155,7 @@ def start_monitoring():
     try:
         update_log_text('Starting traffic monitoring...')
         # Sniff packets and use the packet_callback function
-        sniff(filter='tcp or udp or arp or icmp or http or https, prn=packet_callback)
+        sniff(filter='tcp or udp or arp or icmp or http or https', prn=packet_callback)
     except KeyboardInterrupt:
         update_log_text('Program terminated...')
 
