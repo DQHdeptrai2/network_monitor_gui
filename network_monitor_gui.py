@@ -149,7 +149,7 @@ def packet_callback(packet):
 def start_monitoring():
     global real_time_monitoring_thread, queue
 
-    queue = queue.Queue()
+    queue = Queue()
 
     real_time_monitoring_thread = Thread(target=start_monitoring_thread)
     real_time_monitoring_thread.start()
@@ -176,4 +176,3 @@ def main_thread():
 window.mainloop()
 
   
-
