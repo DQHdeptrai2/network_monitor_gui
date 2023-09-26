@@ -1,161 +1,196 @@
-import queue
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-import pickle
-from threading import Thread
-import requests
-import schedule
-import time
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import ttk, filedialog
 from scapy.all import *
-from scapy.layers.inet import IP, TCP, UDP
-from scapy.layers.l2 import Ether, ARP
-from scapy.layers.dns import DNS, DNSQR, DNSRR
-from scapy.layers.http import HTTPRequest
+import numpy as np
+import os
+import sqlite3
+import re
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.optimizers import Adam
 
 # Tạo một Tkinter window
 window = tk.Tk()
-window.title("Hệ thống giám sát an ninh")
-window.geometry("800x600")
+window.title("Security Monitoring System")
 
-# Tạo một Text widget để hiển thị nhật ký
+# Thêm hộp kiểm để bật hoặc tắt giám sát thời gian thực
+real_time_monitoring_checkbox = tk.Checkbutton(window, text="Bật giám sát thời gian thực")
+real_time_monitoring_checkbox.pack()
+
+# Thêm nút để xóa nhật ký
+clear_log_button = tk.Button(window, text="Xóa nhật ký")
+clear_log_button.pack()
+
+# Thêm menu mới
+menubar = tk.Menu(window)
+window.config(menu=menubar)
+
+# Thêm mục menu mới
+file_menu = tk.Menu(menubar, tearoff=0)
+menubar.add_cascade(label="Tệp", menu=file_menu)
+
+# Định nghĩa hàm để xuất nhật ký sang tệp
+def export_log():
+    filename = filedialog.asksaveasfilename(title="Xuất nhật ký", defaultextension=".txt")
+    if filename:
+        with open(filename, "w") as f:
+            for log in log_list:
+                f.write(log + "\n")
+
+# Gắn hàm này vào mục menu "Xuất nhật ký"
+file_menu.add_command(label="Xuất nhật ký", command=export_log)
+
+# Tạo widget Text để hiển thị nhật ký
 log_text_widget = tk.Text(window, height=10, width=50)
 log_text_widget.config(state=tk.DISABLED)
 log_text_widget.pack()
 
-# Hàm để cập nhật văn bản nhật ký
-def update_log_text(message):
-    log_text_widget.config(state=tk.NORMAL)
-    log_text_widget.insert(tk.END, message + '\n')
-    log_text_widget.config(state=tk.DISABLED)
-    log_text_widget.see(tk.END)
+# Tạo widget Entry widget cho các loại gói cần theo dõi
+packet_types_label = tk.Label(window, text="Nhập các loại gói cần giám sát")
+packet_types_label.pack()
 
-# Define a list to store detected packet types
-detected_packet_types = []
+packet_types_entry = tk.Entry(window, width=50)
+packet_types_entry.pack()
 
-# Hàm để bắt đầu giám sát dựa trên các loại gói được phát hiện
-def start_monitoring_auto():
-    global real_time_monitoring_thread, packet_queue, detected_packet_types
+# Tạo nút để đào tạo mô hình học máy mới
+train_model_button = tk.Button(window, text="Đào tạo mô hình học máy mới")
+train_model_button.pack()
 
-    packet_queue = queue.Queue()
+# Tạo thanh trượt để điều chỉnh độ nhạy của thuật toán phát hiện tấn công
+sensitivity_label = tk.Label(window, text="Điều chỉnh độ nhạy của thuật toán phát hiện tấn công")
+sensitivity_label.pack()
 
-    # Define the main_thread function before starting it
-    def main_thread():
-        while True:
-            # Get a packet from the queue
-            message = packet_queue.get()
-            if message is None:
-                break
+sensitivity_slider = tk.Scale(window, from_=0, to=100, orient="horizontal")
+sensitivity_slider.pack()
 
-            # Send the data to the IDS or NMS
-            send_data_to_ids_or_nms(message)
+# Set thresholds for each packet type
+THRESHOLDS = {
+    'tcp': 1000,
+    'udp': 1000,
+    'arp': 1000,
+    'dns': 1000,
+    'http': 1000,
+    'https': 1000
+}
 
-    # Start the main thread
-    main_thread = Thread(target=main_thread)
-    main_thread.start()
+# Set window size in seconds
+window_size = 60  # Thay đổi giá trị này dựa trên yêu cầu của bạn
 
-# Hàm để bật/tắt tự động phát hiện
-def toggle_auto_detection():
-    global auto_detection_enabled
+# Initialize timestamps and attacking IP addresses
+timestamps = []
+attacking_ip_addresses = set()
 
-    if auto_detection_enabled.get():
-        # Khởi động giám sát thời gian thực
-        toggle_real_time_monitoring()
-    else:
-        # Dừng giám sát thời gian thực
-        toggle_real_time_monitoring(False)
+# Create a database to store the log messages
+with sqlite3.connect('logs.db') as conn:
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS logs (message TEXT)')
 
-# Hàm để tải mô hình học máy
-def load_model():
+# Create a deep learning model for intrusion detection
+feature_dim = 16  # Điều chỉnh kích thước của đặc trưng dựa trên mô hình của bạn
+model = Sequential()
+model.add(Dense(128, input_dim=feature_dim, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
+
+# Define a function to train the deep learning model
+def train_new_model():
     global model
 
-    # Mở tệp mô hình
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
+    # Load and preprocess your training data
+    # ...
 
-# Hàm để tính toán các đặc trưng cho gói
-def calculate_features(packet):
-    # Tính toán các đặc trưng thống kê và thời gian
-    statistical_and_temporal_features = calculate_statistics_and_temporal_features(packet)
+    # Train the model
+    model.fit(X_train, y_train, epochs=10, batch_size=64)
 
-    # Tính toán các đặc trưng nâng cao
-    advanced_features = calculate_advanced_features(packet)
+# Define a function to compute more sophisticated features
+def compute_features(packet):
+    # Tính các đặc trưng thống kê
+    statistical_features = [
+        len(packet),
+        packet.len,
+        packet.ttl,
+        np.mean(packet.time),
+        np.median(packet.time),
+        np.std(packet.time),
+        np.min(packet.time),
+        np.max(packet.time),
+    ]
 
-    # Trả về danh sách các đặc trưng
-    return statistical_and_temporal_features + advanced_features
+    # Tính các đặc trưng thời gian
+    temporal_features = [
+        len(timestamps),
+        np.mean(timestamps),
+        np.median(timestamps),
+        np.std(timestamps),
+        np.min(timestamps),
+        np.max(timestamps),
+    ]
 
-# Hàm để dự đoán xem gói có phải là tấn công DDoS hay không
-def detect_ddos(features):
-    # Sử dụng mô hình học máy để dự đoán
-    return model.predict(features.reshape(1, -1))[0]
+    # Trả về tất cả các đặc trưng
+    return statistical_features + temporal_features
 
-# Hàm để gửi dữ liệu đến hệ thống IDS hoặc NMS
-def send_data_to_ids_or_nms(message):
-    # Gửi dữ liệu đến hệ thống IDS hoặc NMS
-    response = requests.post('https://example.com/api/v1/ddos/detect', json={'message': message})
+# Define a function to get the packet type
+def get_packet_type(packet):
+    header = packet.summary()
+    match = re.match(r'(?P<type>tcp|udp|arp|dns|icmp)', header)
+    if match:
+        return match.group('type')
+    return None
 
-    # Xử lý phản hồi từ hệ thống IDS hoặc NMS
-    if response.status_code == 200:
-        # Nếu phản hồi thành công, hãy cập nhật nhật ký
-        update_log_text('Tấn công DDoS được phát hiện: ' + response.json()['message'])
-    else:
-        # Nếu phản hồi không thành công, hãy cập nhật nhật ký
-        update_log_text('Lỗi: ' + response.json()['message'])
-# Hàm để bắt đầu giám sát thời gian thực
+# Define a function to process each captured packet using the deep learning model
+def packet_callback(packet):
+    global timestamps, attacking_ip_addresses
+
+    # Kiểm tra xem loại gói tin có trong danh sách các loại gói cần giám sát
+    if packet.type not in packet_types:
+        return
+
+    # Cập nhật timestamps
+    timestamps.append(packet.time)
+
+    # Tính các đặc trưng
+    features = compute_features(packet)
+
+    # Lấy loại gói tin
+    packet_type = get_packet_type(packet)
+
+    # Dự đoán bằng mô hình deep learning
+    prediction = model.predict(np.array([features]))
+
+    # Nếu dự đoán cho thấy một sự bất thường, ghi nhật ký
+    if prediction > 0.5:  # Điều chỉnh ngưỡng theo yêu cầu
+        # Thêm trường vào thông điệp nhật ký để lưu loại gói tin
+        log_message = 'Gói tin bất thường từ {}: {} ({})'.format(packet.src, packet.summary(), packet_type)
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, log_message + '\n')
+        log_text_widget.config(state=tk.DISABLED)
+        conn.execute('INSERT INTO logs (message) VALUES (?)', (log_message,))
+        conn.commit()
+
+# Khởi động vòng lặp giám sát
 def start_monitoring():
-    global real_time_monitoring_thread, packet_queue, detected_packet_types
+    global real_time_monitoring_is_enabled
 
-    packet_queue = queue.Queue()
+    # Kiểm tra xem giám sát thời gian thực đã được bật chưa
+    if not real_time_monitoring_is_enabled:
+        return
 
-    # Define the main_thread function before starting it
-    def main_thread():
-        while True:
-            # Get a packet from the queue
-            message = packet_queue.get()
-            if message is None:
-                break
+    # Bắt đầu bắt gói tin
+    try:
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Bắt đầu giám sát lưu lượng...\n')
+        log_text_widget.config(state=tk.DISABLED)
 
-            # Send the data to the IDS or NMS
-            send_data_to_ids_or_nms(message)
+        sniff(filter='tcp, udp, arp, dns, icmp', prn=packet_callback)
+    except KeyboardInterrupt:
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.insert(tk.END, 'Kết thúc chương trình...\n')
+        log_text_widget.config(state=tk.DISABLED)
 
-    # Start the main thread
-    main_thread = Thread(target=main_thread)
-    main_thread.start()
+# Gắn nút "Đào tạo mô hình học máy mới" vào hàm để đào tạo mô hình mới
+train_model_button.config(command=train_new_model)
 
-# Hàm để thực hiện giám sát thời gian thực
-def start_monitoring_thread():
-    while True:
-        # Sniff packets
-        packet = sniff(filter='ip', prn=packet_callback)
-
-        # Add packet to the queue
-        if packet:
-            packet_queue.put(packet)
-
-# Hàm để gửi dữ liệu đến hệ thống IDS hoặc NMS
-def send_data_to_ids_or_nms(message):
-    # Gửi dữ liệu đến hệ thống IDS hoặc NMS
-    response = requests.post('https://example.com/api/v1/ddos/detect', json={'message': message})
-
-    # Xử lý phản hồi từ hệ thống IDS hoặc NMS
-    if response.status_code == 200:
-        # Nếu phản hồi thành công, hãy cập nhật nhật ký
-        update_log_text('Tấn công DDoS được xác nhận')
-    else:
-        # Nếu phản hồi không thành công, hãy cập nhật nhật ký
-        update_log_text('Không thể xác minh tấn công DDoS')
-
-# Khởi chạy vòng lặp chính của Tkinter
+# Bắt đầu vòng lặp chính của Tkinter
 window.mainloop()
-
-# Chức năng chính
-if __name__ == '__main__':
-    # Load mô hình học máy
-    load_model()
-
-    # Tạo danh sách các loại gói được giám sát
-    detected_packet_types = [IP, TCP, UDP]
-
-    # Khởi động giám sát thời gian thực
-    start_monitoring()
