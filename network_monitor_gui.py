@@ -6,6 +6,7 @@ import re
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 from threading import Thread
+import tkinter as tk
 
 # Tạo một Tkinter window
 window = tk.Tk()
