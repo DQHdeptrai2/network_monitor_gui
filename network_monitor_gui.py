@@ -4,36 +4,48 @@ import scapy
 import numpy as np
 from threading import Thread
 
-# Define a global variable to store the log
+# Định nghĩa biến toàn cục để lưu trữ nhật ký
 log_list = []
 
-# Create a function to toggle real-time monitoring
+# Tạo hàm để bật/tắt giám sát thời gian thực
 def toggle_real_time_monitoring():
+    global real_time_monitoring_enabled
+
     if real_time_monitoring_enabled.get():
-        # Real-time monitoring is enabled
-        # Add your logic here for enabled state
-        print("Real-time monitoring is enabled")
+        # Bắt đầu giám sát lưu lượng trong một luồng mới
+        monitoring_thread = Thread(target=start_monitoring)
+        monitoring_thread.start()
+
+        # Bật nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
+        train_model_button.config(state=tk.NORMAL)
+        sensitivity_slider.config(state=tk.NORMAL)
     else:
-        # Real-time monitoring is disabled
-        # Add your logic here for disabled state
-        print("Real-time monitoring is disabled")
+        # Dừng giám sát lưu lượng
+        pass
 
-# Create the main window
+        # Tắt nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
+        train_model_button.config(state=tk.DISABLED)
+        sensitivity_slider.config(state=tk.DISABLED)
+
+# Tạo cửa sổ chính
 window = tk.Tk()
-window.title("Network Monitor GUI")
+window.title("Màn hình giám sát mạng")
 
-# Create a frame to group the real-time monitoring checkbox and label together
-frame = tk.Frame(window)
-frame.pack()
+# Tạo khung để nhóm các loại gói cần theo dõi, nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
+label_frame = tk.LabelFrame(window, text="Loại gói cần theo dõi")
+label_frame.pack()
 
-# Create the real-time monitoring checkbox
-real_time_monitoring_enabled = tk.IntVar(value=0)
-real_time_monitoring_checkbox = tk.Checkbutton(frame, text="Bật giám sát thời gian thực", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
-real_time_monitoring_checkbox.pack()
+# Tạo danh sách hộp cho các loại gói cần theo dõi
+packet_types_listbox = tk.Listbox(label_frame, selectmode=tk.MULTIPLE)
+packet_types_listbox.pack()
 
-# Create a label to explain what the checkbox does
-label = tk.Label(frame, text="Giám sát thời gian thực sẽ cập nhật giao diện người dùng theo thời gian thực.")
-label.pack()
+# Tạo nút "Huấn luyện mô hình học máy mới"
+train_model_button = tk.Button(label_frame, text="Huấn luyện mô hình học máy mới", state=tk.DISABLED)
+train_model_button.pack()
+
+# Tạo thanh trượt để điều chỉnh độ nhạy của thuật toán phát hiện xâm nhập
+sensitivity_slider = tk.Scale(label_frame, from_=0, to=100, orient="horizontal", state=tk.DISABLED)
+sensitivity_slider.pack()
 def start_monitoring():
     # Use Scapy to capture packets
     # Example: packets = sniff(filter="tcp and port 80", count=10)
