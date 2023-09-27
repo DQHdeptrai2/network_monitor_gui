@@ -62,21 +62,25 @@ def start_monitoring():
     #                  log_text_widget.insert(tk.END, "Normal traffic from " + packet.src + "\n")
     #                  log_text_widget.config(state=tk.DISABLED)
     pass
+    
+real_time_monitoring_enabled = tk.IntVar(value=0)
 
-# Checkbutton to toggle real-time monitoring
-# Define a function to toggle real-time monitoring
-def toggle_real_time_monitoring():
-    global real_time_monitoring_enabled
-    if real_time_monitoring_enabled.get():
-        # Start monitoring traffic in a new thread
-        monitoring_thread = Thread(target=start_monitoring)
-        monitoring_thread.start()
-    else:
-        # Stop monitoring traffic
-        pass
-# Create a Checkbutton to toggle real-time monitoring
+# Create the main window
+window = tk.Tk()
+window.title("Network Monitor GUI")
+
+# Create the real-time monitoring checkbox
 real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
 real_time_monitoring_checkbox.pack()
+
+# Create a function to toggle real-time monitoring
+def toggle_real_time_monitoring():
+    if real_time_monitoring_enabled.get():
+        # Real-time monitoring is enabled
+        print("Real-time monitoring is enabled")
+    else:
+        # Real-time monitoring is disabled
+        print("Real-time monitoring is disabled")
 
 # Create a button to clear the log
 clear_log_button = tk.Button(window, text="Clear Log")
