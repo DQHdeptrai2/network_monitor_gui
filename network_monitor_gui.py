@@ -4,83 +4,59 @@ import scapy
 import numpy as np
 from threading import Thread
 
-# Định nghĩa biến toàn cục để lưu trữ nhật ký
+# Define global variables
 log_list = []
+packet_types = []
+real_time_monitoring_enabled = tk.IntVar(value=0)
 
-# Tạo hàm để bật/tắt giám sát thời gian thực
+# Create a function to toggle real-time monitoring
+def start_monitoring():
+    """
+    Starts monitoring network traffic using scapy.
+    """
+    sniff(prn=process_packet)
+
 def toggle_real_time_monitoring():
-    global real_time_monitoring_enabled
-
     if real_time_monitoring_enabled.get():
-        # Bắt đầu giám sát lưu lượng trong một luồng mới
+        # Start monitoring traffic in a new thread
         monitoring_thread = Thread(target=start_monitoring)
         monitoring_thread.start()
-
-        # Bật nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
-        train_model_button.config(state=tk.NORMAL)
-        sensitivity_slider.config(state=tk.NORMAL)
     else:
-        # Dừng giám sát lưu lượng
+        # Stop monitoring traffic
         pass
 
-        # Tắt nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
-        train_model_button.config(state=tk.DISABLED)
-        sensitivity_slider.config(state=tk.DISABLED)
+# Create a function to toggle real-time monitoring
+from threading import Thread
 
-# Tạo cửa sổ chính
-window = tk.Tk()
-window.title("Màn hình giám sát mạng")
+from scapy.all import *
 
-# Tạo khung để nhóm các loại gói cần theo dõi, nút "Huấn luyện mô hình học máy mới" và thanh trượt "Điều chỉnh độ nhạy phát hiện xâm nhập"
-label_frame = tk.LabelFrame(window, text="Loại gói cần theo dõi")
-label_frame.pack()
+def process_packet(packet):
+    """
+    Processes a single packet captured by scapy.
+    """
+    # ... (Packet processing logic)
 
-# Tạo danh sách hộp cho các loại gói cần theo dõi
-packet_types_listbox = tk.Listbox(label_frame, selectmode=tk.MULTIPLE)
-packet_types_listbox.pack()
-
-# Tạo nút "Huấn luyện mô hình học máy mới"
-train_model_button = tk.Button(label_frame, text="Huấn luyện mô hình học máy mới", state=tk.DISABLED)
-train_model_button.pack()
-
-# Tạo thanh trượt để điều chỉnh độ nhạy của thuật toán phát hiện xâm nhập
-sensitivity_slider = tk.Scale(label_frame, from_=0, to=100, orient="horizontal", state=tk.DISABLED)
-sensitivity_slider.pack()
-def start_monitoring():
-    # Use Scapy to capture packets
-    # Example: packets = sniff(filter="tcp and port 80", count=10)
-    # Process the packets and log any suspicious activity
-    # Example: for packet in packets:
-    #              if detect_ddos(packet):
-    #                  log_list.append("DDoS attack detected from " + packet.src)
-    #                  log_text_widget.config(state=tk.NORMAL)
-    #                  log_text_widget.insert(tk.END, "DDoS attack detected from " + packet.src + "\n")
-    #                  log_text_widget.config(state=tk.DISABLED)
-    #              else:
-    #                  log_list.append("Normal traffic from " + packet.src)
-    #                  log_text_widget.config(state=tk.NORMAL)
-    #                  log_text_widget.insert(tk.END, "Normal traffic from " + packet.src + "\n")
-    #                  log_text_widget.config(state=tk.DISABLED)
-    pass
-    
-real_time_monitoring_enabled = tk.IntVar(value=0)
+from scapy.all import sniff
 
 # Create the main window
 window = tk.Tk()
 window.title("Network Monitor GUI")
 
-# Create the real-time monitoring checkbox
-real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
-real_time_monitoring_checkbox.pack()
+# Create a frame to group the packet types to monitor, the train new machine learning model button, and the adjust intrusion detection sensitivity slider
+label_frame = tk.LabelFrame(window, text="Packet Types to Monitor")
+label_frame.pack()
 
-# Create a function to toggle real-time monitoring
-def toggle_real_time_monitoring():
-    if real_time_monitoring_enabled.get():
-        # Real-time monitoring is enabled
-        print("Real-time monitoring is enabled")
-    else:
-        # Real-time monitoring is disabled
-        print("Real-time monitoring is disabled")
+# Create a Listbox widget for the packet types to monitor
+packet_types_listbox = tk.Listbox(label_frame, selectmode=tk.MULTIPLE)
+packet_types_listbox.pack()
+
+# Create a button to train a new machine learning model
+train_model_button = tk.Button(label_frame, text="Train New Machine Learning Model")
+train_model_button.pack()
+
+# Create a Scale widget to adjust the sensitivity of the intrusion detection algorithm
+sensitivity_slider = tk.Scale(label_frame, from_=0, to=100, orient="horizontal")
+sensitivity_slider.pack()
 
 # Create a button to clear the log
 clear_log_button = tk.Button(window, text="Clear Log")
@@ -199,6 +175,166 @@ sensitivity_slider.pack()
 
 # ... (Thresholds, window size, timestamps, attacking_ip_addresses, database creation, and model initialization)
 
+# Define a class to store network traffic information
+class NetworkTrafficInfo:
+    def __init__(self, source, destination, packet_type, number_of_bytes):
+        self.source = source
+        self.destination = destination
+        self.packet_type = packet_type
+        self.number_of_bytes = number_of_bytes
+
+# Calculate network traffic features
+def calculate_network_traffic_features(network_traffic_info_list):
+    features = []
+
+    # Calculate average bandwidth
+    bandwidth = 0
+    for network_traffic_info in network_traffic_info_list:
+        bandwidth += network_traffic_info.number_of_bytes / (network_traffic_info.timestamp - network_traffic_info_list[0].timestamp)
+    features.append(bandwidth / len(network_traffic_info_list))
+
+    # Calculate maximum bandwidth
+    features.append(max(network_traffic_info.number_of_bytes / (network_traffic_info.timestamp - network_traffic_info_list[0].timestamp) for network_traffic_info in network_traffic_info_list))
+
+    # Calculate minimum bandwidth
+    features.append(min(network_traffic_info.number_of_bytes / (network_traffic_info.timestamp - network_traffic_info_list[0].timestamp) for network_traffic_info in network_traffic_info_list))
+
+    # Calculate standard deviation of bandwidth
+    features.append(np.std([network_traffic_info.number_of_bytes / (network_traffic_info.timestamp - network_traffic_info_list[0].timestamp) for network_traffic_info in network_traffic_info_list]))
+
+    # Calculate number of packets
+    features.append(len(network_traffic_info_list))
+
+    # Calculate average packet size
+    features.append(sum(network_traffic_info.number_of_bytes for network_traffic_info in network_traffic_info_list) / len(network_traffic_info_list))
+
+    # Calculate maximum packet size
+    features.append(max(network_traffic_info.number_of_bytes for network_traffic_info in network_traffic_info_list))
+
+    # Calculate minimum packet size
+    features.append(min(network_traffic_info.number_of_bytes for network_traffic_info in network_traffic_info_list))
+
+    return features
+
+# Modify the packet_callback function to use network traffic analysis
+def packet_callback(packet):
+    """
+    Callback function that is called for each packet captured by the network monitor.
+    This function performs the following tasks:
+    - Checks if the packet type is in the list of monitored types
+    - Updates timestamps
+    - Calculates statistical and temporal features
+    - Calculates advanced features
+    - Merges the feature vectors
+    - Detects DDoS attacks
+    - Logs DDoS attacks
+    - Makes predictions using the machine learning model
+    - Logs anomalous packets
+
+    Args:
+        packet: A packet object representing the captured network packet.
+
+    Returns:
+        None
+    """
+    global timestamps, attacking_ip_addresses, packet_types
+
+    # Check if the packet type is in the list of monitored types
+    if packet.type not in packet_types:
+        return
+
+    # Update timestamps
+    timestamps.append(packet.time)
+
+    # Calculate statistical and temporal features
+    # Define a function to calculate statistical features
+    def calculate_statistical_features(packet):
+        # Calculate statistical features such as mean, variance, etc.
+        # Example: mean_feature = np.mean(packet.payload)
+        # Return a list of statistical features
+        return []
+
+    # Define a function to calculate advanced features
+    def compute_advanced_features(packet):
+        # Calculate advanced features such as entropy, port distribution, etc.
+        # Example: entropy_feature = calculate_entropy(packet.payload)
+        # Return a list of advanced features
+        return []
+
+    # Define a function to detect DDoS attacks
+    def detect_ddos(packet):
+        # Implement DDoS detection logic here
+        # Example: Check for a sudden increase in traffic from multiple sources
+        return False
+
+    # Modify the packet callback function to use advanced features and DDoS detection
+    def packet_callback(packet):
+        global timestamps, attacking_ip_addresses, packet_types
+
+        # Check if the packet type is in the list of monitored types
+        if packet.type not in packet_types:
+            return
+
+        # Update timestamps
+        timestamps.append(packet.time)
+
+        # Calculate statistical and temporal features
+        statistical_features = calculate_statistical_features(packet)
+
+        # Calculate advanced features
+        advanced_features = compute_advanced_features(packet)
+
+        # Merge the feature vectors
+        features = statistical_features + advanced_features
+
+        # Detect DDoS attacks
+        if detect_ddos(packet):
+            attacking_ip_addresses.append(packet.src)
+
+        # Make predictions using the machine learning model
+        prediction = model.predict(features)
+
+        # Log anomalous packets
+        if prediction == 1:
+            log_list.append("Anomalous packet from " + packet.src + " to " + packet.dst)
+
+    # Modify the start_monitoring function to use advanced_packet_callback
+
+    # Bind the clear log button to a function to clear the log
+    def clear_log():
+        log_list.clear()
+        log_text_widget.config(state=tk.NORMAL)
+        log_text_widget.delete(1.0, tk.END)
+        log_text_widget.config(state=tk.DISABLED)
+
+    # Calculate advanced features
+    advanced_features = compute_advanced_features(packet)
+
+    # Merge the feature vectors
+    # Calculate statistical and temporal features
+    statistical_features = calculate_statistical_features(packet)
+
+    # Calculate advanced features
+    advanced_features = compute_advanced_features(packet)
+
+    # Merge the feature vectors
+    features = statistical_features + advanced_features
+
+    # Detect DDoS attacks
+    if detect_ddos(packet):
+        attacking_ip_addresses.append(packet.src)
+
+    # Make predictions using the machine learning model
+    # Load the pre-trained machine learning model
+    import joblib
+
+    model = joblib.load('model.pkl')
+
+    # Log anomalous packets
+    prediction = model.predict(features)
+    if prediction == 1:
+        log_list.append("Anomalous packet from " + packet.src + " to " + packet.dst)
+        
 # Define a function to calculate advanced features
 def compute_advanced_features(packet):
     # Calculate advanced features such as entropy, port distribution, etc.
@@ -372,7 +508,6 @@ def packet_callback(packet):
         conn.commit()
 
 # Modify the start_monitoring function to use advanced_packet_callback
-
 
 # Bind the clear log button to a function to clear the log
 def clear_log():
