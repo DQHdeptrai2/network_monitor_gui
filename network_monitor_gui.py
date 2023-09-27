@@ -170,8 +170,6 @@ def export_log():
 # Add the "Export Log" option to the "File" menu
 file_menu.add_command(label="Export Log", command=export_log)
 
-new_func()()
-
 # Create a button to clear the log
 clear_log_button = tk.Button(window, text="Clear Log")
 clear_log_button.pack()
