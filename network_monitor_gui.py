@@ -26,7 +26,7 @@ window.title("Network Monitor GUI")
 real_time_monitoring_enabled = tk.BooleanVar()
 
 # Create a checkbutton for enabling/disabling real-time monitoring
-real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
+real_time_monitoring_checkbox = tk.Button(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
 real_time_monitoring_checkbox.pack()
 def start_monitoring():
     # Use Scapy to capture packets
