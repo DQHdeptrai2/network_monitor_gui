@@ -22,11 +22,12 @@ def toggle_real_time_monitoring():
 window = tk.Tk()
 window.title("Network Monitor GUI")
 
-# Define a tkinter BooleanVar to store the state of real-time monitoring
-real_time_monitoring_enabled = tk.BooleanVar()
+real_time_monitoring_enabled = tk.IntVar(value=0)
 
-# Create a checkbutton for enabling/disabling real-time monitoring
-real_time_monitoring_checkbox = tk.Button(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
+def toggle_real_time_monitoring():
+    real_time_monitoring_enabled.set(not real_time_monitoring_enabled.get())
+
+real_time_monitoring_checkbox = tk.Button(root, text="Bật giám sát thời gian thực", command=toggle_real_time_monitoring)
 real_time_monitoring_checkbox.pack()
 def start_monitoring():
     # Use Scapy to capture packets
