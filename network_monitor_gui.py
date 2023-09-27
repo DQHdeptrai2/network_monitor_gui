@@ -4,26 +4,36 @@ import scapy
 import numpy as np
 from threading import Thread
 
+# Create the root window
+window = tk.Tk()
+
+# Create a Tkinter variable
+real_time_monitoring_enabled = tk.IntVar(value=0)
+
 # Define global variables
 log_list = []
 packet_types = []
 real_time_monitoring_enabled = tk.IntVar(value=0)
 
-# Create a function to toggle real-time monitoring
 def start_monitoring():
     """
     Starts monitoring network traffic using scapy.
     """
     sniff(prn=process_packet)
 
-def toggle_real_time_monitoring():
-    if real_time_monitoring_enabled.get():
-        # Start monitoring traffic in a new thread
-        monitoring_thread = Thread(target=start_monitoring)
-        monitoring_thread.start()
-    else:
-        # Stop monitoring traffic
-        pass
+def main():
+    # Create the main window
+    window = tk.Tk()
+
+    # Create a button to start monitoring
+    start_monitoring_button = tk.Button(window, text="Start Monitoring", command=start_monitoring)
+    start_monitoring_button.pack()
+
+    # Main loop
+    window.mainloop()
+
+if __name__ == "__main__":
+    main()
 
 # Create a function to toggle real-time monitoring
 from threading import Thread
@@ -124,8 +134,49 @@ def detect_ddos(packet):
 packet_types = []
 
 # Checkbutton to toggle real-time monitoring
-real_time_monitoring_checkbox = tk.Button(window, text="Enable Real-time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
-real_time_monitoring_checkbox.pack()
+# Define a function to toggle real-time monitoring
+def toggle_real_time_monitoring():
+    global real_time_monitoring_enabled
+    real_time_monitoring_enabled = not real_time_monitoring_enabled
+    if real_time_monitoring_enabled:
+        # Start real-time monitoring logic here
+        pass
+    else:
+        # Stop real-time monitoring logic here
+        pass
+# Create a Checkbutton to toggle real-time monitoring
+real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", command=toggle_real_time_monitoring)
+
+# Call new_func() after defining real_time_monitoring_checkbox
+def new_func():
+    real_time_monitoring_checkbox.pack()
+
+new_func()
+
+# Create a button to clear the log
+clear_log_button = tk.Button(window, text="Clear Log")
+clear_log_button.pack()
+
+# Create a menu bar
+menubar = tk.Menu(window)
+window.config(menu=menubar)
+
+# Create a "File" menu
+file_menu = tk.Menu(menubar, tearoff=0)
+menubar.add_cascade(label="File", menu=file_menu)
+
+# Function to export log
+def export_log():
+    filename = filedialog.asksaveasfilename(title="Export Log", defaultextension=".txt")
+    if filename:
+        with open(filename, "w") as f:
+            for log in log_list:
+                f.write(log + "\n")
+
+# Add the "Export Log" option to the "File" menu
+file_menu.add_command(label="Export Log", command=export_log)
+
+new_func()()
 
 # Create a button to clear the log
 clear_log_button = tk.Button(window, text="Clear Log")
