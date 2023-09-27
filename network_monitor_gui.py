@@ -22,13 +22,18 @@ def toggle_real_time_monitoring():
 window = tk.Tk()
 window.title("Network Monitor GUI")
 
+# Create a frame to group the real-time monitoring checkbox and label together
+frame = tk.Frame(window)
+frame.pack()
+
+# Create the real-time monitoring checkbox
 real_time_monitoring_enabled = tk.IntVar(value=0)
-
-def toggle_real_time_monitoring():
-    real_time_monitoring_enabled.set(not real_time_monitoring_enabled.get())
-
-real_time_monitoring_checkbox = tk.Button(root, text="Bật giám sát thời gian thực", command=toggle_real_time_monitoring)
+real_time_monitoring_checkbox = tk.Checkbutton(frame, text="Bật giám sát thời gian thực", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
 real_time_monitoring_checkbox.pack()
+
+# Create a label to explain what the checkbox does
+label = tk.Label(frame, text="Giám sát thời gian thực sẽ cập nhật giao diện người dùng theo thời gian thực.")
+label.pack()
 def start_monitoring():
     # Use Scapy to capture packets
     # Example: packets = sniff(filter="tcp and port 80", count=10)
