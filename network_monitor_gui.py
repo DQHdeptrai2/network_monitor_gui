@@ -29,12 +29,6 @@ def main():
     start_monitoring_button = tk.Button(window, text="Start Monitoring", command=start_monitoring)
     start_monitoring_button.pack()
 
-    # Main loop
-    window.mainloop()
-
-if __name__ == "__main__":
-    main()
-
 # Create a function to toggle real-time monitoring
 from threading import Thread
 
