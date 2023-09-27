@@ -9,16 +9,25 @@ log_list = []
 
 # Create a function to toggle real-time monitoring
 def toggle_real_time_monitoring():
-    # Add your logic here to enable or disable real-time monitoring
-    pass
+    if real_time_monitoring_enabled.get():
+        # Real-time monitoring is enabled
+        # Add your logic here for enabled state
+        print("Real-time monitoring is enabled")
+    else:
+        # Real-time monitoring is disabled
+        # Add your logic here for disabled state
+        print("Real-time monitoring is disabled")
 
 # Create the main window
 window = tk.Tk()
 window.title("Network Monitor GUI")
 
-# Create a button for enabling/disabling real-time monitoring
-real_time_monitoring_button = tk.Button(window, text="Enable Real-time Monitoring", command=toggle_real_time_monitoring)
-real_time_monitoring_button.pack()
+# Define a tkinter BooleanVar to store the state of real-time monitoring
+real_time_monitoring_enabled = tk.BooleanVar()
+
+# Create a checkbutton for enabling/disabling real-time monitoring
+real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
+real_time_monitoring_checkbox.pack()
 def start_monitoring():
     # Use Scapy to capture packets
     # Example: packets = sniff(filter="tcp and port 80", count=10)
