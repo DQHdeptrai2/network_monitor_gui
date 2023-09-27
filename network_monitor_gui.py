@@ -16,21 +16,37 @@ real_time_monitoring_enabled = tk.BooleanVar()
 real_time_monitoring_enabled.set(False)
 
 # Function to toggle real-time monitoring
-def toggle_real_time_monitoring():
-    global real_time_monitoring_thread
-    if real_time_monitoring_enabled.get():
-        log_text_widget.config(state=tk.NORMAL)
-        log_text_widget.insert(tk.END, 'Starting traffic monitoring...\n')
-        log_text_widget.config(state=tk.DISABLED)
-        real_time_monitoring_thread = Thread(target=start_monitoring)
-        real_time_monitoring_thread.start()
-    else:
-        log_text_widget.config(state=tk.NORMAL)
-        log_text_widget.insert(tk.END, 'Stopping traffic monitoring...\n')
-        log_text_widget.config(state=tk.DISABLED)
+# Define a function to start monitoring traffic
+def start_monitoring():
+    # Use Scapy to capture packets
+    # Example: packets = sniff(filter="tcp and port 80", count=10)
+    # Process the packets and log any suspicious activity
+    # Example: for packet in packets:
+    #              if detect_ddos(packet):
+    #                  log_list.append("DDoS attack detected from " + packet.src)
+    #                  log_text_widget.config(state=tk.NORMAL)
+    #                  log_text_widget.insert(tk.END, "DDoS attack detected from " + packet.src + "\n")
+    #                  log_text_widget.config(state=tk.DISABLED)
+    #              else:
+    #                  log_list.append("Normal traffic from " + packet.src)
+    #                  log_text_widget.config(state=tk.NORMAL)
+    #                  log_text_widget.insert(tk.END, "Normal traffic from " + packet.src + "\n")
+    #                  log_text_widget.config(state=tk.DISABLED)
+    pass
 
 # Checkbutton to toggle real-time monitoring
-real_time_monitoring_checkbox = tk.Button(window, text="Enable Real-time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
+# Define a function to toggle real-time monitoring
+def toggle_real_time_monitoring():
+    global real_time_monitoring_enabled
+    if real_time_monitoring_enabled.get():
+        # Start monitoring traffic in a new thread
+        monitoring_thread = Thread(target=start_monitoring)
+        monitoring_thread.start()
+    else:
+        # Stop monitoring traffic
+        pass
+# Create a Checkbutton to toggle real-time monitoring
+real_time_monitoring_checkbox = tk.Checkbutton(window, text="Enable Real-Time Monitoring", variable=real_time_monitoring_enabled, command=toggle_real_time_monitoring)
 real_time_monitoring_checkbox.pack()
 
 # Create a button to clear the log
@@ -334,9 +350,9 @@ def clear_log():
 clear_log_button.config(command=clear_log)
 
 # Bind the train model button to a function to train a new machine learning model
-# Define a function to train a new machine learning model
+# Define a function to train a new machine-learning model
 def train_new_model():
-    # Implement logic to train a new machine learning model
+    # Implement logic to train a new machine-learning model
     # Example: model = train_model()
     pass
 
