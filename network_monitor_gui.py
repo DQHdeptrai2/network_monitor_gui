@@ -7,16 +7,18 @@ from threading import Thread
 # Define a global variable to store the log
 log_list = []
 
-# Create a Tkinter window
+# Create a function to toggle real-time monitoring
+def toggle_real_time_monitoring():
+    # Add your logic here to enable or disable real-time monitoring
+    pass
+
+# Create the main window
 window = tk.Tk()
-window.title("Security Monitoring System")
+window.title("Network Monitor GUI")
 
-# Create a variable to track real-time monitoring state
-real_time_monitoring_enabled = tk.BooleanVar()
-real_time_monitoring_enabled.set(False)
-
-# Function to toggle real-time monitoring
-# Define a function to start monitoring traffic
+# Create a button for enabling/disabling real-time monitoring
+real_time_monitoring_button = tk.Button(window, text="Enable Real-time Monitoring", command=toggle_real_time_monitoring)
+real_time_monitoring_button.pack()
 def start_monitoring():
     # Use Scapy to capture packets
     # Example: packets = sniff(filter="tcp and port 80", count=10)
