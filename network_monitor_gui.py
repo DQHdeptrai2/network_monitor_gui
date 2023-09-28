@@ -255,6 +255,9 @@ if TCP in packet and packet[TCP].flags == 2:
             print(f"Đã phát hiện SYN Flood từ {src_ip_syn_flood}. Đang chặn...")
             block_ip(src_ip_syn_flood)
 
+def process_packet(packet):
+    src_ip = packet[scapy.layers.inet.IP].src
+    dst_ip = packet[scapy.layers.inet.IP].dst
 # Phát hiện tấn công phân tán
 if src_ip != IP_ADDRESS:
     if src_ip not in ip_counter:
