@@ -10,7 +10,7 @@ import threading
 from html import unescape
 
 # Khai báo các biến cấu hình
-IP_ADDRESS = 27.73.101.241
+IP_ADDRESS = "27.73.101.241"
 PORT = 80
 THRESHOLD = 10000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
 
