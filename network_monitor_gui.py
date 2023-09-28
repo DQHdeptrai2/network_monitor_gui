@@ -1,14 +1,19 @@
 import threading
 import scapy.all as scapy
+from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.http import HTTPRequest
+from html import unescape
+from scapy.all import sniff
+import time
 import re
 import logging
 from scapy.layers.inet import IP, TCP, UDP
+from scapy.layers.http import HTTPRequest
 from html import unescape
-from scapy.all import sniff
 
 # Các biến cấu hình
 IP_ADDRESS = "172.30.248.107"
-THRESHOLD = 1000
+THRESHOLD = 10000
 LOG_FILENAME = 'security.log'
 
 # Tạo một logger
@@ -61,8 +66,8 @@ def process_tcp_packet(packet, src_ip, dst_ip, sport, dport):
         logger.warning(f"Phát hiện dữ liệu độc hại hoặc nhạy cảm từ {src_ip}")
         block_ip(src_ip)
 
-    if scapy.layers.http.HTTPRequest in packet:
-        http_request = packet.get_layer(scapy.layers.http.HTTPRequest)
+    if HTTPRequest in packet:
+        http_request = packet.getlayer(HTTPRequest)
         if http_request.method in ["GET", "POST"]:
             logger.info(f"Yêu cầu HTTP {http_request.method} từ {src_ip}:{sport} đến {dst_ip}:{dport}")
             if is_sql_injection(http_request.Path) or is_url_malicious(http_request.Path) or is_xss(http_request.Path):
@@ -104,4 +109,9 @@ def start_sniffing():
 if __name__ == "__main__":
     t = threading.Thread(target=start_sniffing)
     t.start()
-    t.join()
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        exit_flag = True  # Thông báo cho luồng thoát một cách tử tế
+        t.join()  # Đợi luồng kết thúc
