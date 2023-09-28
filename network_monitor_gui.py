@@ -1,117 +1,140 @@
 import threading
-import scapy.all as scapy
-from scapy.layers.inet import IP, TCP, UDP
-from scapy.layers.http import HTTPRequest
-from html import unescape
-from scapy.all import sniff
-import time
+from scapy.all import *
 import re
 import logging
-from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.http import HTTPRequest
-from html import unescape
+from scapy.layers.inet import IP, TCP, Raw
+from scapy.sendrecv import sniff
+import threading
+import collections
+import time
 
-# Các biến cấu hình
-IP_ADDRESS = "172.30.248.107"
-THRESHOLD = 10000
-LOG_FILENAME = 'security.log'
+# Khai báo các biến cấu hình
+IP_ADDRESS = ""
+PORT = 80
+THRESHOLD = 10000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
 
-# Tạo một logger
+# Khai báo một logger
 logger = logging.getLogger(__name__)
 
-# Cài đặt ghi log
-logging.basicConfig(filename=LOG_FILENAME, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Thiết lập mức độ log
 logger.setLevel(logging.DEBUG)
 
-# Tạo một bộ xử lý tệp cho các địa chỉ IP bị chặn
-handler = logging.FileHandler("blocked_ips.log")
-handler.setLevel(logging.INFO)
+# Tạo một handler để ghi log vào file
+handler = logging.FileHandler("log.txt")
+handler.setLevel(logging.DEBUG)
 
-# Định dạng thông điệp ghi log
+# Tạo một formatter để định dạng các thông tin log
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
-# Đăng ký bộ xử lý với logger
+# Đăng ký handler với logger
 logger.addHandler(handler)
 
-# Tạo một từ điển lưu trữ số lượng yêu cầu từ các địa chỉ IP
-ip_counter = {}
+# Danh sách lưu trữ các địa chỉ IP đã gửi nhiều gói tin đến
+ip_counter = collections.Counter()
 
-# Tập hợp lưu trữ địa chỉ IP bị chặn
-ip_block_list = set()
-
-# Khóa để đồng bộ hóa quyền truy cập vào tập hợp địa chỉ IP bị chặn
+# Khóa chia sẻ để đồng bộ hóa danh sách các địa chỉ IP đã bị chặn
 ip_block_list_lock = threading.Lock()
 
-def block_ip(ip):
-    with ip_block_list_lock:
-        ip_block_list.add(ip)
+# Danh sách các địa chỉ IP đã bị chặn
+ip_block_list = set()
 
+# Hàm xử lý mỗi gói tin HTTP đến
 def process_packet(packet):
-    if IP in packet:
+    if IP in packet and TCP in packet:
         src_ip = packet[IP].src
         dst_ip = packet[IP].dst
-        sport = packet.sport
-        dport = packet.dport
+        sport = packet[TCP].sport
+        dport = packet[TCP].dport
+    
+        # Kiểm tra xem địa chỉ IP đã bị chặn hay chưa
+        with ip_block_list_lock:
+            if src_ip in ip_block_list:
+                return
+        
+        # Kiểm tra lớp mạng layer 7 (HTTP)
+        if Raw in packet:
+            http_payload = str(packet[Raw].load)
+            if "HTTP" in http_payload:
+                print(f"Detected Layer 7 (HTTP) traffic from {src_ip}:{sport} to {dst_ip}:{dport}")
+                
+                # Kiểm tra xem gói tin có phải là HTTP hay HTTPS
+                http_request = HTTPRequest(http_payload)
+                if http_request:
+                    if http_request.method == "GET":
+                        print(f"Lớp mạng layer 7 (HTTP) GET request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
+                    elif http_request.method == "POST":
+                        print(f"Lớp mạng layer 7 (HTTP) POST request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
 
-        if TCP in packet:
-            process_tcp_packet(packet, src_ip, dst_ip, sport, dport)
-        elif UDP in packet:
-            process_udp_packet(packet, src_ip, dst_ip, sport, dport)
+                # Trích xuất đường dẫn URL
+                url_pattern = re.compile(r"(https?:\/\/(?:www\.)?([^\s]+))")
+                url_match = url_pattern.search(http_payload)
+                if url_match:
+                    url = url_match.group(1)
+                    print(f"URL: {url}")
 
-def process_tcp_packet(packet, src_ip, dst_ip, sport, dport):
-    payload = str(packet[TCP].payload)
+                    # Kiểm tra xem URL có chứa các từ khóa độc hại hay không
+                    if is_malicious_url(url):
+                        print("URL is malicious!")
 
-    if is_malicious_payload(payload) or is_sensitive_data(payload):
-        logger.warning(f"Phát hiện dữ liệu độc hại hoặc nhạy cảm từ {src_ip}")
-        block_ip(src_ip)
+        # Kiểm tra lớp mạng layer 4 (TCP/UDP)
+        if src_ip != IP_ADDRESS:
+            if src_ip in ip_counter:
+                ip_counter[src_ip] += 1
+                if ip_counter[src_ip] > THRESHOLD:
+                    print(f"Detected abnormal traffic from {src_ip}. Blocking...")
+                    block_ip(src_ip)  # Chặn địa chỉ IP bất thường
+                    
+        # Ghi log thông tin gói tin
+        logger.info("Đã nhận được gói tin từ %s:%s đến %s:%s", src_ip, sport, dst_ip, dport)
 
-    if HTTPRequest in packet:
-        http_request = packet.getlayer(HTTPRequest)
-        if http_request.method in ["GET", "POST"]:
-            logger.info(f"Yêu cầu HTTP {http_request.method} từ {src_ip}:{sport} đến {dst_ip}:{dport}")
-            if is_sql_injection(http_request.Path) or is_url_malicious(http_request.Path) or is_xss(http_request.Path):
-                logger.warning(f"Phát hiện cuộc tấn công web từ {src_ip}")
-                block_ip(src_ip)
+# Hàm chặn một địa chỉ IP bất thường
+def block_ip(ip):
+    ip_block_list_lock.acquire()
+    ip_block_list.add(ip)
+    ip_block_list_lock.release()
 
-def process_udp_packet(packet, src_ip, dst_ip, sport, dport):
-    payload = str(packet[UDP].payload)
-    if is_malicious_payload(payload) or is_sensitive_data(payload):
-        logger.warning(f"Phát hiện dữ liệu độc hại hoặc nhạy cảm từ {src_ip}")
-        block_ip(src_ip)
-
-def is_malicious_payload(payload):
+# Hàm xác định xem URL có chứa các từ khóa độc hại hay không
+def is_malicious_url(url):
     malicious_keywords = ["malware", "phishing", "virus"]
-    return any(keyword in payload for keyword in malicious_keywords)
+    for keyword in malicious_keywords:
+        if keyword in url:
+            return True
+    return False
 
-def is_sensitive_data(payload):
-    sensitive_data_patterns = [
-        re.compile(r"[a-z0-9]{32}-[a-z0-9]{16}"),  # Mẫu hash MD5
-        re.compile(r"[a-z0-9]{64}"),  # Mẫu hash SHA-1
-    ]
-    return any(pattern.search(payload) for pattern in sensitive_data_patterns)
-
-def is_sql_injection(http_payload):
-    sql_injection_keywords = ["SELECT", "INSERT", "UPDATE", "DELETE", "UNION", "DROP"]
-    return any(keyword in http_payload.upper() for keyword in sql_injection_keywords)
-
-def is_url_malicious(url):
-    malicious_keywords = ["malware", "phishing", "virus"]
-    return any(keyword in url for keyword in malicious_keywords)
-
-def is_xss(http_payload):
-    decoded_payload = unescape(http_payload)
-    return decoded_payload != http_payload
-
+# Hàm bắt đầu lắng nghe gói tin
 def start_sniffing():
-    sniff(filter="tcp or udp", prn=process_packet)
+    sniff(filter="dst port 80-8080", prn=process_packet)
 
-if __name__ == "__main__":
+# Hàm kiểm tra xem một địa chỉ IP đã bị chặn trong một khoảng thời gian nhất định hay chưa
+def is_ip_blocked(ip, timeout):
+    now = time.time()
+    for blocked_ip in ip_block_list:
+        if blocked_ip == ip and now - blocked_ip.last_blocked_time < timeout:
+            return True
+    return False
+
+# Hàm giải phóng một địa chỉ IP khỏi danh sách các địa chỉ IP đã bị chặn
+def unblock_ip(ip):
+    ip_block_list_lock.acquire()
+    ip_block_list.remove(ip)
+    ip_block_list_lock.release()
+
+# Hàm chính
+def main():
+    # Bắt đầu lắng nghe gói tin trên một luồng riêng
     t = threading.Thread(target=start_sniffing)
     t.start()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        exit_flag = True  # Thông báo cho luồng thoát một cách tử tế
-        t.join()  # Đợi luồng kết thúc
+
+    # Vòng lặp kiểm tra xem một địa chỉ IP đã bị chặn trong một khoảng thời gian nhất định hay chưa
+    while True:
+        for ip in ip_block_list:
+            if is_ip_blocked(ip, 60):
+                print(f"Unblocking {ip}...")
+                unblock_ip(ip)
+
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()
