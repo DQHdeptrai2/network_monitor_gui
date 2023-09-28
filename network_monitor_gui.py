@@ -192,6 +192,7 @@ if Raw in packet:
         dport = packet[TCP].dport
         http_request = HTTPRequest(http_payload)
 
+http_payload = "GET / HTTP/1.1\r\nHost: www.google.com\r\n\r\n"
 # Trích xuất đường dẫn URL
 url_pattern = re.compile(r"(https?:\/\/(?:www\.)?([^\s]+))")
 url_match = url_pattern.search(http_payload)
