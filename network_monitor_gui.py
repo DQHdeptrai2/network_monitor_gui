@@ -12,7 +12,7 @@ from html import unescape
 # Khai báo các biến cấu hình
 IP_ADDRESS = "172.30.248.107"
 PORT = 80
-THRESHOLD = 10000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
+THRESHOLD = 1000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
 
 # Khai báo một logger
 logger = logging.getLogger(__name__)
