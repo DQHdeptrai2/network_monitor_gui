@@ -12,7 +12,7 @@ from html import unescape
 # Khai báo các biến cấu hình
 IP_ADDRESS = "172.30.248.107"
 PORT = 80
-THRESHOLD = 1000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
+THRESHOLD = 10000  # Số lượng gói tin cho phép trước khi bắt đầu chặn
 
 # Khai báo một logger
 logger = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ def process_packet(packet):
         dst_ip = packet[scapy.layers.inet.IP].dst
         sport = packet[scapy.layers.inet.TCP].sport
         dport = packet[scapy.layers.inet.TCP].dport
+        
 
 def process_packet(packet):
     src_ip = packet[scapy.layers.inet.IP].src
@@ -70,13 +71,7 @@ def process_packet(packet):
 # Xử lý gói tin HTTP
     if scapy.layers.http.HTTPRequest in packet.layers():
         http_request = packet.get_layer(scapy.layers.http.HTTPRequest)
-        print("----------------------------------------------------------------------")
-        print("HTTP Request:")
-        print("Method:", http_request.method)
-        print("URL:", http_request.path)
-        print("Host:", http_request.Host)
-        print("Payload:", http_request.payload)
-        print("----------------------------------------------------------------------")
+
 # Xử lý gói tin UDP
     elif scapy.layers.inet.UDP in packet.layers():
         udp_payload = str(packet[scapy.layers.inet.UDP].payload)
@@ -222,20 +217,27 @@ def process_http_request(src_ip):
         print(f"Đã phát hiện tấn công DDoS từ {src_ip}. Đang chặn...")
         block_ip(src_ip)  # Chặn địa chỉ IP bất thường 
 
+def process_packet(packet):
+    if scapy.layers.http.HTTPRequest in packet.layers():
+        http_request = packet.get_layer(scapy.layers.http.HTTPRequest)
+        src_ip = packet[scapy.layers.inet.IP].src
+        dst_ip = packet[scapy.layers.inet.IP].dst
+        sport = packet[scapy.layers.inet.TCP].sport
+        dport = packet[scapy.layers.inet.TCP].dport
 # Kiểm tra xem có một yêu cầu HTTP hợp lệ không
-if http_request is not None:
-    if http_request.method == "GET":
-        print(f"Lớp mạng layer 7 (HTTP) GET request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
-    elif http_request.method == "POST":
-        print(f"Lớp mạng layer 7 (HTTP) POST request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
-else:
-    print("Không phải yêu cầu HTTP hợp lệ.")
-    block_ip(src_ip)  # Chặn địa chỉ IP bất thường
+    if http_request is not None:
+        if http_request.method == "GET":
+            print(f"Lớp mạng layer 7 (HTTP) GET request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
+        elif http_request.method == "POST":
+            print(f"Lớp mạng layer 7 (HTTP) POST request từ {src_ip}:{sport} đến {dst_ip}:{dport}")
+    else:
+        print("Không phải yêu cầu HTTP hợp lệ.")
+        block_ip(src_ip)  # Chặn địa chỉ IP bất thường
 
 # Kiểm tra lớp mạng layer 4 (TCP/UDP)
-if src_ip != IP_ADDRESS:
-    if src_ip in ip_counter:
-        ip_counter[src_ip] += 1
+    if src_ip != IP_ADDRESS:
+        if src_ip in ip_counter:
+           ip_counter[src_ip] += 1
         if ip_counter[src_ip] > THRESHOLD:
             print(f"Đã phát hiện lưu lượng truy cập bất thường từ {src_ip}. Đang chặn...")
             block_ip(src_ip)  # Chặn địa chỉ IP bất thường
@@ -281,7 +283,7 @@ def block_ip(ip):
 
 # Bắt đầu lắng nghe gói tin trên một luồng riêng
 def start_sniffing():
-    sniff(filter="dst port 80-8080", prn=process_packet)
+    sniff(filter="tcp and dst port 80-8080", prn=process_packet)
     pass
 def process_udp_packet(packet):
     sniff(filter="udp", prn=process_udp_packet)
